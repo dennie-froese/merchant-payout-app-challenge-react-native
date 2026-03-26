@@ -1,32 +1,67 @@
-import { StyleSheet } from 'react-native';
-
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { usePayoutForm } from '@/hooks/usePayoutForm';
+import { PayoutForm } from '@/components/PayoutForm';
+import { PayoutSuccess } from '@/components/PayoutSuccess';
+import { PayoutError } from '@/components/PayoutError';
+import { ConfirmationModal } from '@/components/ConfirmationModal';
+import { CurrencyPickerModal } from '@/components/CurrencyPickerModal';
 
 export default function PayoutsScreen() {
+  const {
+    amount, currency, iban,
+    screenState, showConfirmation, showCurrencyPicker,
+    submitting, errorMessage, successAmount, successCurrency,
+    amountNum, isValid,
+    setAmount, setCurrency, setIban,
+    setShowConfirmation, setShowCurrencyPicker,
+    handleSubmit, handleReset, handleTryAgain,
+  } = usePayoutForm();
+
+  if (screenState === 'success') {
+    return (
+      <PayoutSuccess
+        amount={successAmount}
+        currency={successCurrency}
+        onReset={handleReset}
+      />
+    );
+  }
+
+  if (screenState === 'error') {
+    return (
+      <PayoutError
+        message={errorMessage}
+        onRetry={handleTryAgain}
+      />
+    );
+  }
+
   return (
-    <ThemedView style={styles.container}>
-      <ThemedView style={styles.header}>
-        <ThemedText type="title">Initiate Payout</ThemedText>
-      </ThemedView>
-
-      <ThemedView style={styles.section}>
-        <ThemedText type="subtitle">Payout Amount</ThemedText>
-      </ThemedView>
-
-    </ThemedView>
+    <>
+      <PayoutForm
+        amount={amount}
+        currency={currency}
+        iban={iban}
+        submitting={submitting}
+        isValid={isValid}
+        onAmountChange={setAmount}
+        onCurrencyPress={() => setShowCurrencyPicker(true)}
+        onIbanChange={setIban}
+        onConfirm={() => setShowConfirmation(true)}
+      />
+      <ConfirmationModal
+        visible={showConfirmation}
+        amount={Math.round(amountNum * 100)}
+        currency={currency}
+        iban={iban}
+        onCancel={() => setShowConfirmation(false)}
+        onConfirm={handleSubmit}
+      />
+      <CurrencyPickerModal
+        visible={showCurrencyPicker}
+        selected={currency}
+        onSelect={(c) => { setCurrency(c); setShowCurrencyPicker(false); }}
+        onClose={() => setShowCurrencyPicker(false)}
+      />
+    </>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-  },
-  header: {
-    marginBottom: 24,
-  },
-  section: {
-    marginBottom: 24,
-  },
-});

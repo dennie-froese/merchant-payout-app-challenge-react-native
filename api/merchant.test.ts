@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw';
-import { fetchMerchant, fetchActivity } from './merchant';
+import { fetchMerchant, fetchActivity, submitPayout } from './merchant';
 import { server } from '../mocks/server.test';
 
 describe('fetchMerchant', () => {
@@ -58,5 +58,43 @@ describe('fetchActivity', () => {
       )
     );
     await expect(fetchActivity()).rejects.toThrow('Request failed with status 500');
+  });
+});
+
+describe('submitPayout', () => {
+  const payload = { amount: 40000, currency: 'GBP' as const, iban: 'GB29NWBK60161331926819' };
+
+  it('returns the payout response on success', async () => {
+    const result = await submitPayout(payload);
+    expect(result.status).toBe('completed');
+    expect(result.amount).toBe(40000);
+  });
+
+  it('throws with the api error message on 503', async () => {
+    // trigger amount: 99999 pence (999.99)
+    await expect(
+      submitPayout({ ...payload, amount: 99999 })
+    ).rejects.toThrow('Service temporarily unavailable. Please try again later.');
+  });
+
+  it('throws with the api error message on 400', async () => {
+    // trigger amount: 88888 pence (888.88)
+    await expect(
+      submitPayout({ ...payload, amount: 88888 })
+    ).rejects.toThrow('Insufficient funds');
+  });
+
+  it('throws when the response status is failed', async () => {
+    // trigger: amount % 100 === 99, e.g. 199 pence (1.99)
+    await expect(
+      submitPayout({ ...payload, amount: 199 })
+    ).rejects.toThrow('Payout could not be completed. Please try again.');
+  });
+
+  it('throws on a network error', async () => {
+    server.use(
+      http.post('http://localhost:3000/api/payouts', () => HttpResponse.error())
+    );
+    await expect(submitPayout(payload)).rejects.toThrow();
   });
 });
