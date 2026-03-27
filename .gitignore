@@ -51,6 +51,9 @@ yarn-error.*
 coverage/
 .nyc_output/
 
+# Local modules - native build artifacts
+modules/**/android/build/
+
 # Temporary files
 *.tmp
 *.temp
