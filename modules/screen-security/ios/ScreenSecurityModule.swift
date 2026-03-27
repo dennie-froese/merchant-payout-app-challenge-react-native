@@ -1,4 +1,5 @@
 import ExpoModulesCore
+import LocalAuthentication
 import UIKit
 
 public class ScreenSecurityModule: Module {
@@ -16,6 +17,24 @@ public class ScreenSecurityModule: Module {
       let generated = UUID().uuidString
       UserDefaults.standard.set(generated, forKey: key)
       return generated
+    }
+
+    AsyncFunction("isBiometricAuthenticated") { (promise: Promise) in
+      let context = LAContext()
+      var error: NSError?
+
+      guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
+        if let laError = error as? LAError, laError.code == .biometryNotEnrolled {
+          promise.reject("E_BIOMETRICS_NOT_ENROLLED", "Biometrics not set up. Please enable Face ID or Touch ID in Settings.")
+        } else {
+          promise.reject("E_BIOMETRICS_NOT_AVAILABLE", "Biometrics not available on this device.")
+        }
+        return
+      }
+
+      context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: "Confirm payout") { success, _ in
+        promise.resolve(success)
+      }
     }
   }
 }

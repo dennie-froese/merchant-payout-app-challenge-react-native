@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { submitPayout } from '@/api/merchant';
-import { getDeviceId } from '@/modules/screen-security';
+import { getDeviceId, isBiometricAuthenticated } from '@/modules/screen-security';
 import type { Currency } from '@/types/api';
 
 export type ScreenState = 'form' | 'success' | 'error';
@@ -23,6 +23,27 @@ export function usePayoutForm() {
   const handleSubmit = async () => {
     setShowConfirmation(false);
     setSubmitting(true);
+
+    if (amountNum > 1000) {
+      try {
+        const authenticated = await isBiometricAuthenticated();
+        if (!authenticated) {
+          setSubmitting(false);
+          return;
+        }
+      } catch (err: unknown) {
+        const code = (err as { code?: string }).code;
+        if (code === 'E_BIOMETRICS_NOT_ENROLLED') {
+          setErrorMessage('Biometrics not set up. Please enable Face ID, Touch ID, or fingerprint authentication in Settings.');
+        } else {
+          setErrorMessage(err instanceof Error ? err.message : 'Biometric authentication failed.');
+        }
+        setScreenState('error');
+        setSubmitting(false);
+        return;
+      }
+    }
+
     try {
       const pence = Math.round(amountNum * 100);
       const deviceId = getDeviceId();

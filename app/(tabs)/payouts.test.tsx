@@ -5,6 +5,7 @@ import PayoutsScreen from './payouts';
 
 jest.mock('@/modules/screen-security', () => ({
   getDeviceId: jest.fn(() => 'test-device-id'),
+  isBiometricAuthenticated: jest.fn().mockResolvedValue(true),
 }));
 
 jest.mock('react-native-safe-area-context', () => ({
@@ -171,6 +172,62 @@ describe('PayoutsScreen', () => {
       fireEvent.press(screen.getByLabelText('Confirm and submit payout'));
       await waitFor(() => expect(screen.getByText('Payout Completed')).toBeTruthy());
       expect(capturedBody.device_id).toBe('test-device-id');
+    });
+  });
+
+  describe('biometric authentication', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('does not trigger biometric for amount <= 1000', async () => {
+      const { isBiometricAuthenticated } = require('@/modules/screen-security');
+      render(<PayoutsScreen />);
+      fillForm('1000', VALID_IBAN);
+      fireEvent.press(screen.getByLabelText('Confirm payout'));
+      await waitFor(() => expect(screen.getByText('Confirm Payout')).toBeTruthy());
+      fireEvent.press(screen.getByLabelText('Confirm and submit payout'));
+      await waitFor(() => expect(screen.getByText('Payout Completed')).toBeTruthy());
+      expect(isBiometricAuthenticated).not.toHaveBeenCalled();
+    });
+
+    it('triggers biometric for amount > 1000 and proceeds on success', async () => {
+      const { isBiometricAuthenticated } = require('@/modules/screen-security');
+      isBiometricAuthenticated.mockResolvedValue(true);
+      render(<PayoutsScreen />);
+      fillForm('1001', VALID_IBAN);
+      fireEvent.press(screen.getByLabelText('Confirm payout'));
+      await waitFor(() => expect(screen.getByText('Confirm Payout')).toBeTruthy());
+      fireEvent.press(screen.getByLabelText('Confirm and submit payout'));
+      await waitFor(() => expect(screen.getByText('Payout Completed')).toBeTruthy());
+      expect(isBiometricAuthenticated).toHaveBeenCalledTimes(1);
+    });
+
+    it('aborts payout and returns to form when biometric returns false', async () => {
+      const { isBiometricAuthenticated } = require('@/modules/screen-security');
+      isBiometricAuthenticated.mockResolvedValue(false);
+      render(<PayoutsScreen />);
+      fillForm('1001', VALID_IBAN);
+      fireEvent.press(screen.getByLabelText('Confirm payout'));
+      await waitFor(() => expect(screen.getByText('Confirm Payout')).toBeTruthy());
+      fireEvent.press(screen.getByLabelText('Confirm and submit payout'));
+      await waitFor(() => expect(screen.getByText('Send Payout')).toBeTruthy());
+      expect(screen.queryByText('Payout Completed')).toBeNull();
+    });
+
+    it('shows error screen when biometrics are not enrolled', async () => {
+      const { isBiometricAuthenticated } = require('@/modules/screen-security');
+      const error = Object.assign(new Error('Biometrics not set up.'), { code: 'E_BIOMETRICS_NOT_ENROLLED' });
+      isBiometricAuthenticated.mockRejectedValue(error);
+      render(<PayoutsScreen />);
+      fillForm('1001', VALID_IBAN);
+      fireEvent.press(screen.getByLabelText('Confirm payout'));
+      await waitFor(() => expect(screen.getByText('Confirm Payout')).toBeTruthy());
+      fireEvent.press(screen.getByLabelText('Confirm and submit payout'));
+      await waitFor(() => expect(screen.getByText('Unable to Process Payout')).toBeTruthy());
+      expect(
+        screen.getByText('Biometrics not set up. Please enable Face ID, Touch ID, or fingerprint authentication in Settings.')
+      ).toBeTruthy();
     });
   });
 
