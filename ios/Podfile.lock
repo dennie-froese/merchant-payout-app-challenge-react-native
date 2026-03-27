@@ -2034,6 +2034,8 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
+  - ScreenSecurity (1.0.0):
+    - ExpoModulesCore
   - SDWebImage (5.21.7):
     - SDWebImage/Core (= 5.21.7)
   - SDWebImage/Core (5.21.7)
@@ -2136,6 +2138,7 @@ DEPENDENCIES:
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
   - RNWorklets (from `../node_modules/react-native-worklets`)
+  - ScreenSecurity (from `../modules/screen-security/ios`)
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
 SPEC REPOS:
@@ -2324,6 +2327,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-screens"
   RNWorklets:
     :path: "../node_modules/react-native-worklets"
+  ScreenSecurity:
+    :path: "../modules/screen-security/ios"
   Yoga:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
@@ -2418,6 +2423,7 @@ SPEC CHECKSUMS:
   RNReanimated: 1442a577e066e662f0ce1cd1864a65c8e547aee0
   RNScreens: d8d6f1792f6e7ac12b0190d33d8d390efc0c1845
   RNWorklets: 76fce72926e28e304afb44f0da23b2d24f2c1fa0
+  ScreenSecurity: c2a745692fd0e9ccb829035b6271271168d67775
   SDWebImage: e9fc87c1aab89a8ab1bbd74eba378c6f53be8abf
   SDWebImageAVIFCoder: afe194a084e851f70228e4be35ef651df0fc5c57
   SDWebImageSVGCoder: 15a300a97ec1c8ac958f009c02220ac0402e936c

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { submitPayout } from '@/api/merchant';
+import { getDeviceId } from '@/modules/screen-security';
 import type { Currency } from '@/types/api';
 
 export type ScreenState = 'form' | 'success' | 'error';
@@ -24,7 +25,8 @@ export function usePayoutForm() {
     setSubmitting(true);
     try {
       const pence = Math.round(amountNum * 100);
-      const result = await submitPayout({ amount: pence, currency, iban: iban.trim() });
+      const deviceId = getDeviceId();
+      const result = await submitPayout({ amount: pence, currency, iban: iban.trim(), device_id: deviceId });
       setSuccessAmount(result.amount);
       setSuccessCurrency(result.currency);
       setScreenState('success');

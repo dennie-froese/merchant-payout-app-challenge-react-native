@@ -3,6 +3,10 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../../mocks/server.test';
 import PayoutsScreen from './payouts';
 
+jest.mock('@/modules/screen-security', () => ({
+  getDeviceId: jest.fn(() => 'test-device-id'),
+}));
+
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
 }));
@@ -144,6 +148,29 @@ describe('PayoutsScreen', () => {
       fireEvent.press(screen.getByLabelText('Create another payout'));
       await waitFor(() => expect(screen.getByText('Send Payout')).toBeTruthy());
       expect(screen.getByLabelText('Payout amount').props.value).toBe('');
+    });
+  });
+
+  describe('device identity', () => {
+    it('sends device_id in the payout request body', async () => {
+      let capturedBody: Record<string, unknown> = {};
+      server.use(
+        http.post('http://localhost:3000/api/payouts', async ({ request }) => {
+          capturedBody = await request.json() as Record<string, unknown>;
+          return HttpResponse.json(
+            { id: 'pay_001', status: 'completed', amount: 40000, currency: 'GBP', iban: VALID_IBAN, created_at: '2026-01-23T10:00:00Z' },
+            { status: 201 }
+          );
+        })
+      );
+
+      render(<PayoutsScreen />);
+      fillForm();
+      fireEvent.press(screen.getByLabelText('Confirm payout'));
+      await waitFor(() => expect(screen.getByText('Confirm Payout')).toBeTruthy());
+      fireEvent.press(screen.getByLabelText('Confirm and submit payout'));
+      await waitFor(() => expect(screen.getByText('Payout Completed')).toBeTruthy());
+      expect(capturedBody.device_id).toBe('test-device-id');
     });
   });
 
