@@ -1,11 +1,23 @@
+import { useEffect } from 'react';
+import { Alert } from 'react-native';
 import { usePayoutForm } from '@/hooks/usePayoutForm';
 import { PayoutForm } from '@/components/PayoutForm';
 import { PayoutSuccess } from '@/components/PayoutSuccess';
 import { PayoutError } from '@/components/PayoutError';
 import { ConfirmationModal } from '@/components/ConfirmationModal';
 import { CurrencyPickerModal } from '@/components/CurrencyPickerModal';
+import { addScreenshotListener } from '@/modules/screen-security';
 
 export default function PayoutsScreen() {
+  useEffect(() => {
+    const subscription = addScreenshotListener(() => {
+      Alert.alert(
+        'Screenshot Detected',
+        'Please keep your financial data private. Screenshots may contain sensitive information.'
+      );
+    });
+    return () => subscription.remove();
+  }, []);
   const {
     amount, currency, iban,
     screenState, showConfirmation, showCurrencyPicker,

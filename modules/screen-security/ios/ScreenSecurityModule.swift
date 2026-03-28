@@ -3,8 +3,29 @@ import LocalAuthentication
 import UIKit
 
 public class ScreenSecurityModule: Module {
+  private var screenshotObserver: NSObjectProtocol?
+
   public func definition() -> ModuleDefinition {
     Name("ScreenSecurity")
+
+    Events("onScreenshotTaken")
+
+    OnCreate {
+      screenshotObserver = NotificationCenter.default.addObserver(
+        forName: UIApplication.userDidTakeScreenshotNotification,
+        object: nil,
+        queue: .main
+      ) { [weak self] _ in
+        self?.sendEvent("onScreenshotTaken")
+      }
+    }
+
+    OnDestroy {
+      if let observer = screenshotObserver {
+        NotificationCenter.default.removeObserver(observer)
+        screenshotObserver = nil
+      }
+    }
 
     Function("getDeviceId") { () -> String in
       if let id = UIDevice.current.identifierForVendor?.uuidString {

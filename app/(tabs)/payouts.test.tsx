@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { Alert } from 'react-native';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../mocks/server.test';
 import PayoutsScreen from './payouts';
@@ -6,6 +7,7 @@ import PayoutsScreen from './payouts';
 jest.mock('@/modules/screen-security', () => ({
   getDeviceId: jest.fn(() => 'test-device-id'),
   isBiometricAuthenticated: jest.fn().mockResolvedValue(true),
+  addScreenshotListener: jest.fn(() => ({ remove: jest.fn() })),
 }));
 
 jest.mock('react-native-safe-area-context', () => ({
@@ -228,6 +230,29 @@ describe('PayoutsScreen', () => {
       expect(
         screen.getByText('Biometrics not set up. Please enable Face ID, Touch ID, or fingerprint authentication in Settings.')
       ).toBeTruthy();
+    });
+  });
+
+  describe('screenshot security', () => {
+    it('shows a warning alert when a screenshot is taken', () => {
+      const alertSpy = jest.spyOn(Alert, 'alert');
+      const { addScreenshotListener } = require('@/modules/screen-security');
+      render(<PayoutsScreen />);
+      const listener = addScreenshotListener.mock.calls[0][0];
+      act(() => listener());
+      expect(alertSpy).toHaveBeenCalledWith(
+        'Screenshot Detected',
+        'Please keep your financial data private. Screenshots may contain sensitive information.'
+      );
+    });
+
+    it('removes the screenshot listener on unmount', () => {
+      const mockRemove = jest.fn();
+      const { addScreenshotListener } = require('@/modules/screen-security');
+      addScreenshotListener.mockReturnValueOnce({ remove: mockRemove });
+      const { unmount } = render(<PayoutsScreen />);
+      unmount();
+      expect(mockRemove).toHaveBeenCalled();
     });
   });
 

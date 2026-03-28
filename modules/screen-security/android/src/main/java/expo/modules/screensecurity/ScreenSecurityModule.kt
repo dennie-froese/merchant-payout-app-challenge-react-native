@@ -1,5 +1,6 @@
 package expo.modules.screensecurity
 
+import android.os.Build
 import android.provider.Settings
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
@@ -11,8 +12,31 @@ import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
 class ScreenSecurityModule : Module() {
+  private var screenCaptureCallback: Any? = null
+
   override fun definition() = ModuleDefinition {
     Name("ScreenSecurity")
+
+    Events("onScreenshotTaken")
+
+    OnCreate {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        val activity = appContext.currentActivity ?: return@OnCreate
+        val callback = android.app.Activity.ScreenCaptureCallback { sendEvent("onScreenshotTaken") }
+        screenCaptureCallback = callback
+        activity.registerScreenCaptureCallback(ContextCompat.getMainExecutor(activity), callback)
+      }
+    }
+
+    OnDestroy {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        @Suppress("UNCHECKED_CAST")
+        (screenCaptureCallback as? android.app.Activity.ScreenCaptureCallback)?.let { callback ->
+          appContext.currentActivity?.unregisterScreenCaptureCallback(callback)
+        }
+        screenCaptureCallback = null
+      }
+    }
 
     Function("getDeviceId") {
       Settings.Secure.getString(
